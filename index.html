@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پایش فشار خون | بازی و همراه هوشمند</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a1a26; --bg2:#0e2233; --panel:#0f2536; --panel-line: rgba(255,255,255,0.08);
+    --pulse:#ff5d73; --pulse-soft: rgba(255,93,115,0.15);
+    --vital:#35e2b0; --vital-soft: rgba(53,226,176,0.14);
+    --amber:#f2b95c; --amber-soft: rgba(242,185,92,0.16);
+    --danger:#ff5d73; --danger-soft: rgba(255,93,115,0.16);
+    --text:#eef6f4; --text-dim:#7d9aa3;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(ellipse at 15% -10%, rgba(53,226,176,0.10), transparent 45%),
+                radial-gradient(ellipse at 90% 0%, rgba(255,93,115,0.10), transparent 45%),
+                var(--bg);
+    color:var(--text); font-family:'Vazirmatn', Tahoma, sans-serif;
+    min-height:100vh; padding:0 0 90px;
+  }
+  .mono{font-family:'JetBrains Mono', monospace;}
+  .hero{ padding:26px 20px 16px; text-align:center; border-bottom:1px solid var(--panel-line); }
+  .hero h1{ font-size:1.6rem;font-weight:900;margin:0 0 4px; }
+  .hero p{color:var(--text-dim);margin:0;font-size:.85rem;}
+  .wrap{max-width:760px;margin:0 auto;padding:18px 16px 0;}
+
+  .tabs{ display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:18px; }
+  .tab{ flex:none; padding:10px 16px; border-radius:999px; cursor:pointer; background:var(--panel); border:1px solid var(--panel-line); color:var(--text-dim); font-size:.85rem; font-weight:600; white-space:nowrap; transition:.2s; }
+  .tab.active{ background:var(--vital); color:#04241a; border-color:transparent; }
+  .page{ display:none; } .page.active{ display:block; }
+
+  .status{ display:flex; justify-content:space-between; align-items:center; background:var(--panel); border:1px solid var(--panel-line); border-radius:16px; padding:14px 18px; margin-bottom:18px; font-size:.85rem; color:var(--text-dim); }
+  .status b{ color:var(--vital); font-family:'JetBrains Mono',monospace; font-size:1.05rem; display:block; }
+  .streak-badge{ display:inline-flex; align-items:center; gap:6px; background:var(--pulse-soft); color:var(--pulse); padding:5px 12px; border-radius:999px; font-size:.8rem; font-weight:700; }
+
+  .city{ background:var(--panel); border:1px solid var(--panel-line); border-radius:20px; padding:22px; margin-bottom:18px; }
+  .city-skyline{ display:flex;align-items:flex-end;justify-content:center; gap:6px;height:100px;margin-bottom:10px; border-bottom:2px solid var(--vital-soft); }
+  .building{ background:linear-gradient(180deg,var(--vital),#0f6e56); border-radius:4px 4px 0 0;width:18px; transition:height .6s ease; box-shadow:0 0 12px var(--vital-soft); }
+  .tree{width:12px;height:16px;border-radius:50% 50% 20% 20%;background:#4caf7d;}
+  .city-cap{ text-align:center; font-size:.8rem; color:var(--text-dim); }
+
+  .section-title{ font-size:.95rem; font-weight:700; margin:22px 0 12px; color:var(--text-dim); }
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+  @media(max-width:520px){.grid{grid-template-columns:1fr;}}
+  .card{ background:var(--panel);border:1px solid var(--panel-line); border-radius:16px;padding:18px; }
+  .card h3{margin:0 0 10px;font-size:.92rem;display:flex;align-items:center;gap:8px;font-weight:600;}
+  .steps-row{display:flex;align-items:center;gap:10px;}
+  input[type=range]{flex:1;accent-color:var(--vital);}
+  .steps-val{min-width:56px;text-align:left;font-weight:700;color:var(--vital);font-family:'JetBrains Mono',monospace;font-size:.85rem;}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .switch{width:44px;height:24px;background:#1c3644;border-radius:999px;position:relative;cursor:pointer;transition:.25s;flex:none;}
+  .switch.on{background:var(--vital);}
+  .switch::after{content:'';position:absolute;top:3px;right:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.25s;}
+  .switch.on::after{right:23px;}
+  .num-row{display:flex;gap:8px;}
+  .num-row input{flex:1;background:var(--bg2);border:1px solid var(--panel-line);color:var(--text);border-radius:10px;padding:9px;text-align:center;font-family:inherit;}
+
+  button.primary{ width:100%;padding:14px;border:none;border-radius:14px; background:linear-gradient(90deg,var(--vital),#1fb389); color:#04241a;font-weight:900;font-size:.95rem;cursor:pointer; box-shadow:0 6px 18px var(--vital-soft); }
+  button.primary:active{transform:translateY(1px);}
+  button.primary:disabled{opacity:.4;}
+  button.secondary{ width:100%;padding:12px;border:1px solid var(--panel-line);border-radius:14px; background:transparent;color:var(--text);font-weight:700;font-size:.88rem;cursor:pointer; }
+
+  .result-box{ margin-top:14px; border-radius:14px; padding:16px; border:1px solid var(--panel-line); }
+  .result-box.low{ background:var(--vital-soft); border-color:var(--vital); }
+  .result-box.mid{ background:var(--amber-soft); border-color:var(--amber); }
+  .result-box.high{ background:var(--danger-soft); border-color:var(--danger); }
+  .result-box b{ display:block; font-size:1rem; margin-bottom:4px; }
+  .result-box p{ margin:0; font-size:.82rem; color:var(--text-dim); line-height:1.8; }
+
+  .quiz-card{ background:var(--panel);border:1px solid var(--panel-line); border-radius:18px;padding:22px; }
+  .quiz-progress{ font-size:.78rem; color:var(--text-dim); margin-bottom:8px; }
+  .quiz-q{ font-size:1.02rem; font-weight:700; margin-bottom:16px; line-height:1.8; }
+  .opt{ display:block; width:100%; text-align:right; background:var(--bg2); border:1px solid var(--panel-line); color:var(--text); border-radius:12px; padding:12px 16px; margin-bottom:10px; cursor:pointer; font-family:inherit; font-size:.86rem; transition:.15s; }
+  .opt:hover{ border-color:var(--vital); }
+  .opt.correct{ background:var(--vital-soft); border-color:var(--vital); color:var(--vital); }
+  .opt.wrong{ background:var(--pulse-soft); border-color:var(--pulse); color:var(--pulse); }
+  .opt:disabled{ cursor:default; }
+  .quiz-result{ text-align:center; padding:20px 0; }
+  .quiz-result .big{ font-size:2.4rem; font-weight:900; color:var(--vital); font-family:'JetBrains Mono',monospace;}
+
+  .simon-wrap{ text-align:center; }
+  .simon-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; max-width:280px; margin:20px auto; }
+  .simon-btn{ height:110px; border-radius:16px; border:none; cursor:pointer; opacity:.55; transition:.12s; }
+  .simon-btn.lit{ opacity:1; transform:scale(0.97); box-shadow:0 0 30px currentColor; }
+  .simon-btn:nth-child(1){ background:var(--pulse); color:var(--pulse); }
+  .simon-btn:nth-child(2){ background:var(--vital); color:var(--vital); }
+  .simon-btn:nth-child(3){ background:var(--amber); color:var(--amber); }
+  .simon-btn:nth-child(4){ background:#6f9bff; color:#6f9bff; }
+  .simon-status{ font-size:.9rem; color:var(--text-dim); margin-bottom:6px; }
+  .simon-level{ font-size:1.8rem; font-weight:900; font-family:'JetBrains Mono',monospace; color:var(--amber); }
+
+  .coach{ background:var(--panel);border:1px solid var(--panel-line); border-radius:20px;overflow:hidden; }
+  .coach-head{ padding:16px 18px;border-bottom:1px solid var(--panel-line); display:flex;align-items:center;gap:10px; }
+  .coach-avatar{ width:36px;height:36px;border-radius:50%; background:linear-gradient(135deg,var(--pulse),var(--amber)); display:flex;align-items:center;justify-content:center;font-size:1.1rem; }
+  .coach-head b{font-size:.95rem;} .coach-head span{display:block;font-size:.75rem;color:var(--text-dim);}
+  .coach-body{padding:16px 18px;max-height:320px;overflow-y:auto;}
+  .msg{margin-bottom:12px;font-size:.88rem;line-height:1.8;}
+  .msg.ai{color:var(--text);} .msg.user{color:var(--vital);text-align:left;}
+  .msg .bubble{ display:inline-block;padding:9px 14px;border-radius:14px;max-width:85%; }
+  .msg.ai .bubble{background:var(--bg2);border-radius:14px 14px 14px 4px;}
+  .msg.user .bubble{background:var(--vital-soft);border-radius:14px 14px 4px 14px;}
+  .coach-input-row{ display:flex;gap:8px;padding:14px 18px;border-top:1px solid var(--panel-line); }
+  .coach-input-row input{ flex:1;background:var(--bg2);border:1px solid var(--panel-line); color:var(--text);border-radius:12px;padding:11px 14px;font-family:inherit;font-size:.88rem; }
+  .coach-input-row button{ background:var(--pulse);color:#2a0208;border:none;border-radius:12px; padding:0 18px;font-weight:800;cursor:pointer;font-size:.9rem; }
+  .coach-input-row button:disabled{opacity:.5;cursor:default;}
+  .key-setup{padding:16px 18px;font-size:.82rem;color:var(--text-dim);line-height:1.9;}
+  .key-setup input{ width:100%;margin-top:10px;background:var(--bg2);border:1px solid var(--panel-line); color:var(--text);border-radius:10px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:.8rem; }
+  .key-setup button{ margin-top:10px;width:100%;background:var(--vital);color:#04241a;border:none; border-radius:10px;padding:10px;font-weight:800;cursor:pointer; }
+  .key-note{font-size:.72rem;color:#4f7079;margin-top:8px;display:block;}
+  .warn-box{ background:var(--amber-soft); border:1px solid var(--amber); border-radius:10px; padding:10px 12px; font-size:.76rem; color:var(--text); margin-top:10px; line-height:1.8;}
+
+  .disclaimer{ margin-top:22px;font-size:.72rem;color:#4f7079;text-align:center;line-height:1.9; }
+  .toast{ position:fixed;bottom:20px;left:50%;transform:translateX(-50%); background:var(--vital);color:#04241a;padding:10px 20px;border-radius:999px; font-weight:700;font-size:.85rem;opacity:0;pointer-events:none;transition:.3s; }
+  .toast.show{opacity:1;bottom:34px;}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🩸 پایش فشار خون</h1>
+  <p>بازی، آزمون، محاسبه‌گر سلامت و مربی هوشمند برای پیشگیری از فشار خون بالا</p>
+</div>
+
+<div class="wrap">
+
+  <div class="status">
+    <div>روز پیاپی <span class="streak-badge" id="streakBadge">🔥 0</span></div>
+    <div style="text-align:left">امتیاز کل<b id="totalScore">0</b></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-page="home">🏠 خانه</div>
+    <div class="tab" data-page="quiz">❓ اطلاعات عمومی</div>
+    <div class="tab" data-page="brain">🧠 آزمون هوش</div>
+    <div class="tab" data-page="coach">🩺 مربی هوشمند</div>
+  </div>
+
+  <!-- ===== صفحه خانه ===== -->
+  <div class="page active" id="page-home">
+    <div class="city">
+      <div class="city-skyline" id="skyline"></div>
+      <div class="city-cap">شهر سلامتت با هر امتیازی که می‌گیری آباد می‌شه</div>
+    </div>
+
+    <div class="section-title">عادت‌های امروز</div>
+    <div class="grid">
+      <div class="card">
+        <h3>🚶 قدم امروز</h3>
+        <div class="steps-row"><input type="range" id="steps" min="0" max="15000" step="500" value="0"><span class="steps-val" id="stepsVal">0</span></div>
+      </div>
+      <div class="card">
+        <h3>🧂 وعده کم‌نمک</h3>
+        <div class="toggle-row"><span style="color:var(--text-dim);font-size:.82rem">امروز نمک کم مصرف کردم</span><div class="switch" id="saltSwitch"></div></div>
+      </div>
+      <div class="card">
+        <h3>😴 ساعت خواب</h3>
+        <div class="steps-row"><input type="range" id="sleep" min="0" max="12" step="0.5" value="0"><span class="steps-val" id="sleepVal">0h</span></div>
+      </div>
+      <div class="card">
+        <h3>❤️ فشار خون امروز</h3>
+        <div class="num-row">
+          <input type="number" id="sys" placeholder="سیستولیک">
+          <input type="number" id="dia" placeholder="دیاستولیک">
+        </div>
+      </div>
+    </div>
+    <button class="primary" id="saveBtn">ثبت عادت‌های امروز</button>
+
+    <div class="section-title">قد و وزن (BMI)</div>
+    <div class="card">
+      <div class="num-row" style="margin-bottom:10px;">
+        <input type="number" id="height" placeholder="قد (سانتی‌متر)">
+        <input type="number" id="weight" placeholder="وزن (کیلوگرم)">
+      </div>
+      <button class="secondary" id="bmiBtn">محاسبه BMI</button>
+      <div id="bmiResult"></div>
+    </div>
+
+    <div class="section-title">عوامل خطر فشار خون</div>
+    <div class="grid">
+      <div class="card">
+        <h3>🎂 سن</h3>
+        <div class="num-row"><input type="number" id="age" placeholder="سن (سال)"></div>
+      </div>
+      <div class="card">
+        <h3>😣 سطح استرس</h3>
+        <div class="steps-row"><input type="range" id="stress" min="0" max="10" value="0"><span class="steps-val" id="stressVal">0</span></div>
+      </div>
+      <div class="card">
+        <h3>🚬 مصرف سیگار</h3>
+        <div class="toggle-row"><span style="color:var(--text-dim);font-size:.82rem">سیگار می‌کشم</span><div class="switch" id="smokeSwitch"></div></div>
+      </div>
+      <div class="card">
+        <h3>🍷 مصرف الکل</h3>
+        <div class="toggle-row"><span style="color:var(--text-dim);font-size:.82rem">مصرف منظم دارم</span><div class="switch" id="alcoholSwitch"></div></div>
+      </div>
+      <div class="card">
+        <h3>🧬 سابقه خانوادگی</h3>
+        <div class="toggle-row"><span style="color:var(--text-dim);font-size:.82rem">فشار خون بالا در خانواده</span><div class="switch" id="familySwitch"></div></div>
+      </div>
+    </div>
+
+    <button class="primary" id="riskBtn">محاسبه وضعیت من</button>
+    <div id="riskResult"></div>
+  </div>
+
+  <!-- ===== صفحه آزمون اطلاعات عمومی ===== -->
+  <div class="page" id="page-quiz">
+    <div class="quiz-card" id="quizCard"></div>
+  </div>
+
+  <!-- ===== صفحه آزمون هوش ===== -->
+  <div class="page" id="page-brain">
+    <div class="quiz-card simon-wrap">
+      <div class="simon-status" id="simonStatus">دنباله‌ی رنگ‌ها رو تماشا کن، بعد همون ترتیب رو تکرار کن</div>
+      <div class="simon-level" id="simonLevel">سطح ۰</div>
+      <div class="simon-grid">
+        <button class="simon-btn" data-i="0"></button>
+        <button class="simon-btn" data-i="1"></button>
+        <button class="simon-btn" data-i="2"></button>
+        <button class="simon-btn" data-i="3"></button>
+      </div>
+      <button class="primary" id="simonStart" style="max-width:220px;margin:0 auto;">شروع بازی</button>
+    </div>
+  </div>
+
+  <!-- ===== صفحه مربی هوشمند ===== -->
+  <div class="page" id="page-coach">
+    <div class="coach">
+      <div class="coach-head">
+        <div class="coach-avatar">🩺</div>
+        <div><b>مربی هوشمند</b><span>سوالت رو درباره فشار خون و سبک زندگی سالم بپرس</span></div>
+      </div>
+      <div id="keySetup" class="key-setup">
+        برای فعال‌سازی مربی هوشمند، کلید API رایگان خودت از Google AI Studio رو وارد کن. این کلید فقط داخل مرورگر خودت ذخیره می‌شه.
+        <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
+        <button id="saveKeyBtn">ذخیره و شروع گفتگو</button>
+        <span class="key-note">کلید نداری؟ برو به <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--vital)">aistudio.google.com/app/apikey</a> و یه کلید رایگان بساز.</span>
+        <div class="warn-box">✅ خبر خوب: Gemini API رایگانه! مدل <b>gemini-3.5-flash</b> بدون هیچ هزینه‌ای در دسترسه (با محدودیت ۱۵ درخواست در دقیقه).<br><br>⚠️ مهم: چت هوشمند فقط وقتی کار می‌کنه که این صفحه از طریق یک آدرس واقعی (مثل GitHub Pages با https) باز شده باشه، نه با دابل‌کلیک مستقیم روی فایل.</div>
+      </div>
+      <div id="coachBody" class="coach-body" style="display:none;"></div>
+      <div id="coachInputRow" class="coach-input-row" style="display:none;">
+        <input type="text" id="chatInput" placeholder="مثلاً: چرا خواب کم فشار خون رو بالا می‌بره؟">
+        <button id="sendBtn">ارسال</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="disclaimer">این بازی، محاسبه‌گرها و مربی هوشمندش جایگزین تشخیص یا درمان پزشک نیستند. برای هر تصمیم درمانی با پزشک مشورت کنید.</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= state ================= */
+const STORAGE_KEY = "healthy-heart-save-v4";
+
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){ try{ return JSON.parse(raw); }catch(e){} }
+  return { score:0, streak:0, lastDate:null, history:[], simonBest:0 };
+}
+function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+let state = loadState();
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function addScore(n){ state.score += n; saveState(state); renderStatus(); }
+function renderStatus(){
+  document.getElementById('totalScore').textContent = state.score;
+  document.getElementById('streakBadge').innerHTML = '🔥 ' + state.streak;
+  renderCity();
+}
+function renderCity(){
+  const skyline = document.getElementById('skyline');
+  skyline.innerHTML = '';
+  const count = Math.min(state.score, 40);
+  for(let i=0;i<count;i++){
+    const el = document.createElement('div');
+    if(i % 4 === 0){ el.className = 'tree'; }
+    else{ el.className = 'building'; el.style.height = (18 + (i % 7) * 11) + 'px'; }
+    skyline.appendChild(el);
+  }
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 2400);
+}
+
+/* ================= tabs ================= */
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('page-' + tab.dataset.page).classList.add('active');
+  });
+});
+
+/* ================= habit tracker ================= */
+const stepsEl = document.getElementById('steps'), stepsVal = document.getElementById('stepsVal');
+const sleepEl = document.getElementById('sleep'), sleepVal = document.getElementById('sleepVal');
+const saltSwitch = document.getElementById('saltSwitch');
+const stressEl = document.getElementById('stress'), stressVal = document.getElementById('stressVal');
+const smokeSwitch = document.getElementById('smokeSwitch');
+const alcoholSwitch = document.getElementById('alcoholSwitch');
+const familySwitch = document.getElementById('familySwitch');
+let saltOn=false, smokeOn=false, alcoholOn=false, familyOn=false;
+
+stepsEl.addEventListener('input', ()=> stepsVal.textContent = stepsEl.value);
+sleepEl.addEventListener('input', ()=> sleepVal.textContent = sleepEl.value + 'h');
+stressEl.addEventListener('input', ()=> stressVal.textContent = stressEl.value);
+saltSwitch.addEventListener('click', ()=>{ saltOn=!saltOn; saltSwitch.classList.toggle('on', saltOn); });
+smokeSwitch.addEventListener('click', ()=>{ smokeOn=!smokeOn; smokeSwitch.classList.toggle('on', smokeOn); });
+alcoholSwitch.addEventListener('click', ()=>{ alcoholOn=!alcoholOn; alcoholSwitch.classList.toggle('on', alcoholOn); });
+familySwitch.addEventListener('click', ()=>{ familyOn=!familyOn; familySwitch.classList.toggle('on', familyOn); });
+
+document.getElementById('saveBtn').addEventListener('click', ()=>{
+  const today = todayStr();
+  if(state.lastDate === today){ showToast('امروز رو قبلاً ثبت کردی 👍'); return; }
+  const steps = Number(stepsEl.value), sleep = Number(sleepEl.value);
+  const sys = document.getElementById('sys').value, dia = document.getElementById('dia').value;
+  let points = 0;
+  if(steps >= 5000) points += 2;
+  if(steps >= 8000) points += 1;
+  if(saltOn) points += 2;
+  if(sleep >= 7) points += 2;
+  if(points === 0) points = 1;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  state.streak = (state.lastDate === yesterday) ? state.streak + 1 : 1;
+  state.lastDate = today;
+  state.history.push({date:today, steps, salt:saltOn, sleep, sys, dia, points});
+  addScore(points);
+  showToast('آفرین! ' + points + ' امتیاز گرفتی 🌱');
+});
+
+/* ================= BMI ================= */
+document.getElementById('bmiBtn').addEventListener('click', ()=>{
+  const h = Number(document.getElementById('height').value) / 100;
+  const w = Number(document.getElementById('weight').value);
+  const box = document.getElementById('bmiResult');
+  if(!h || !w){ showToast('قد و وزن رو وارد کن'); return; }
+  const bmi = w / (h*h);
+  let label, cls;
+  if(bmi < 18.5){ label = 'کم‌وزن'; cls='mid'; }
+  else if(bmi < 25){ label = 'وزن طبیعی'; cls='low'; }
+  else if(bmi < 30){ label = 'اضافه‌وزن'; cls='mid'; }
+  else { label = 'چاقی'; cls='high'; }
+  box.innerHTML = `<div class="result-box ${cls}"><b>BMI شما: ${bmi.toFixed(1)} — ${label}</b><p>این فقط یک شاخص تقریبیه و جایگزین ارزیابی پزشک نیست، مخصوصاً برای ورزشکاران یا افراد با ترکیب بدنی خاص.</p></div>`;
+});
+
+/* ================= risk summary ================= */
+document.getElementById('riskBtn').addEventListener('click', ()=>{
+  const age = Number(document.getElementById('age').value) || 0;
+  const stress = Number(stressEl.value);
+  const steps = Number(stepsEl.value);
+  const sleep = Number(sleepEl.value);
+  const sys = Number(document.getElementById('sys').value) || 0;
+  const dia = Number(document.getElementById('dia').value) || 0;
+  const h = Number(document.getElementById('height').value) / 100;
+  const w = Number(document.getElementById('weight').value);
+  const bmi = (h && w) ? w/(h*h) : 0;
+
+  let score = 0;
+  if(bmi >= 30) score += 3; else if(bmi >= 25) score += 1;
+  if(age >= 60) score += 2; else if(age >= 45) score += 1;
+  if(smokeOn) score += 2;
+  if(familyOn) score += 1;
+  if(alcoholOn) score += 1;
+  if(stress >= 7) score += 1;
+  if(steps < 5000) score += 1;
+  if(sleep < 6) score += 1;
+  if(sys >= 140 || dia >= 90) score += 3;
+  else if(sys >= 130) score += 1;
+
+  let label, cls, tip;
+  if(score <= 2){ label='کم‌خطر'; cls='low'; tip='وضعیت فعلیت خوبه؛ همین روند سالم رو ادامه بده.'; }
+  else if(score <= 6){ label='نیاز به توجه'; cls='mid'; tip='چند تا از عوامل خطر داری؛ بهتره روی نمک، ورزش و خواب بیشتر تمرکز کنی و در صورت ادامه، با پزشک مشورت کنی.'; }
+  else { label='پرخطر'; cls='high'; tip='چند عامل خطر مهم با هم جمع شدن. توصیه می‌شه در اسرع وقت با پزشک درباره وضعیت فشار خونت صحبت کنی.'; }
+
+  document.getElementById('riskResult').innerHTML = `
+    <div class="result-box ${cls}">
+      <b>وضعیت تخمینی: ${label}</b>
+      <p>${tip}</p>
+      <p style="margin-top:8px;">⚠️ این فقط یک تخمین ساده بر اساس عادت‌های ثبت‌شده است، نه یک تشخیص پزشکی. برای ارزیابی دقیق حتماً به پزشک مراجعه کن.</p>
+    </div>`;
+  addScore(1);
+});
+
+/* ================= quiz bank (160 questions) ================= */
+const quizBank = [
+{q:"فشار خون طبیعی معمولاً در چه محدوده‌ای است؟",opts:["حدود ۹۰ روی ۵۰","حدود ۱۸۰ روی ۱۲۰","حدود ۲۰۰ روی ۱۰۰","حدود ۱۲۰ روی ۸۰"],correct:3},
+{q:"عدد بالای فشار خون چه نام دارد؟",opts:["ضربان","پالس","سیستولیک","دیاستولیک"],correct:2},
+{q:"عدد پایین فشار خون چه نام دارد؟",opts:["دیاستولیک","ضربان","پالس","سیستولیک"],correct:0},
+{q:"واحد اندازه‌گیری فشار خون چیست؟",opts:["میلی‌لیتر","درجه سانتی‌گراد","میلی‌متر جیوه","کیلوگرم"],correct:2},
+{q:"فشار خون بالا در پزشکی چه نام دارد؟",opts:["هیپوتانسیون","دیابت","آنمی","هیپرتانسیون"],correct:3},
+{q:"فشار خون پایین چه نام دارد؟",opts:["هیپرتانسیون","برادی‌کاردی","تاکی‌کاردی","هیپوتانسیون"],correct:3},
+{q:"دستگاه اندازه‌گیری فشار خون چه نام دارد؟",opts:["گلوکومتر","ترمومتر","فشارسنج","استتوسکوپ"],correct:2},
+{q:"بهترین زمان اندازه‌گیری فشار خون در خانه چه زمانی است؟",opts:["بلافاصله بعد از ورزش","بعد از حمام داغ","صبح قبل از دارو و غذا","نیمه‌شب"],correct:2},
+{q:"فشار خون ۱۴۰ روی ۹۰ چه وضعیتی محسوب می‌شود؟",opts:["بالا","پایین","طبیعی","نرمال-بالا"],correct:0},
+{q:"کدام بازو برای اندازه‌گیری فشار خون توصیه می‌شود؟",opts:["پا","انگشت","بازوی برهنه در سطح قلب","مچ دست بالای سر"],correct:2},
+{q:"قبل از اندازه‌گیری فشار خون چند دقیقه باید استراحت کرد؟",opts:["۳۰ ثانیه","۰ دقیقه","یک ساعت","حدود ۵ دقیقه"],correct:3},
+{q:"فشار خون در طول روز چگونه است؟",opts:["هرگز تغییر نمی‌کند","فقط شب تغییر می‌کند","همیشه ثابت است","می‌تواند نوسان داشته باشد"],correct:3},
+{q:"فشار خون بحرانی (اورژانسی) از چه عددی شروع می‌شود؟",opts:["۹۰ روی ۵۰","۱۲۰ روی ۸۰","حدود ۱۸۰ روی ۱۲۰","۱۰۰ روی ۶۰"],correct:2},
+{q:"کدام مورد به کاهش کلسترول بد کمک می‌کند؟",opts:["افزایش مصرف چربی اشباع","افزایش مصرف نمک","کاهش مصرف آب","افزایش مصرف فیبر"],correct:3},
+{q:"قلب انسان از چند حفره تشکیل شده؟",opts:["۱ حفره","۲ حفره","۶ حفره","۴ حفره"],correct:3},
+{q:"وظیفه اصلی قلب چیست؟",opts:["تولید انسولین","هضم غذا","فیلتر کردن خون مثل کلیه","پمپاژ خون در بدن"],correct:3},
+{q:"رگ‌هایی که خون را از قلب دور می‌کنند چه نام دارند؟",opts:["شریان‌ها","اعصاب","مویرگ‌ها","وریدها"],correct:0},
+{q:"رگ‌هایی که خون را به قلب برمی‌گردانند چه نام دارند؟",opts:["وریدها","مویرگ‌ها","تاندون‌ها","شریان‌ها"],correct:0},
+{q:"کدام قسمت قلب خون تازه‌اکسیژن‌دار را به بدن می‌فرستد؟",opts:["دهلیز چپ","بطن چپ","بطن راست","دهلیز راست"],correct:1},
+{q:"اکسیژن‌رسانی به سلول‌های بدن از طریق چه چیزی انجام می‌شود؟",opts:["گردش خون","پوست","سیستم گوارش","سیستم عصبی به‌تنهایی"],correct:0},
+{q:"کلسترول بد معمولاً با چه حروفی شناخته می‌شود؟",opts:["LDL","HDL","BMI","DNA"],correct:0},
+{q:"کلسترول خوب معمولاً با چه حروفی شناخته می‌شود؟",opts:["LDL","BMI","RNA","HDL"],correct:3},
+{q:"تصلب شرایین (آترواسکلروز) به چه معناست؟",opts:["بزرگ شدن قلب","کاهش ضربان قلب","نرم شدن عروق","سفت و باریک شدن دیواره عروق"],correct:3},
+{q:"سکته قلبی معمولاً به دلیل چه چیزی رخ می‌دهد؟",opts:["افزایش شنوایی","انسداد جریان خون به عضله قلب","کاهش دمای بدن","افزایش ناگهانی قد"],correct:1},
+{q:"سکته مغزی چه ارتباطی با فشار خون بالا دارد؟",opts:["هیچ ارتباطی ندارد","فشار خون بالا همیشه از آن جلوگیری می‌کند","فقط ارثی است","فشار خون بالا از عوامل خطر مهم آن است"],correct:3},
+{q:"ضربان طبیعی قلب در حالت استراحت برای بزرگسالان معمولاً چند ضربه در دقیقه است؟",opts:["۵ ضربه","۳۰۰ ضربه","حدود ۶۰ تا ۱۰۰ ضربه","۱۰ ضربه"],correct:2},
+{q:"کدام مورد جزو عوامل تشکیل‌دهنده سیستم قلبی‌عروقی است؟",opts:["معده و روده","پوست و مو","قلب، رگ‌ها و خون","ریه‌ها به‌تنهایی"],correct:2},
+{q:"نارسایی قلبی به چه معناست؟",opts:["ناتوانی قلب در پمپاژ کافی خون","توقف کامل قلب","بهبود کامل عملکرد قلب","افزایش بیش‌ازحد قدرت قلب"],correct:0},
+{q:"آریتمی قلبی به چه معناست؟",opts:["بدون هیچ مشکلی","نامنظم بودن ریتم ضربان قلب","همیشه ضربان بسیار سریع","همیشه ضربان بسیار کند"],correct:1},
+{q:"عروق کرونر چه نقشی دارند؟",opts:["خون‌رسانی به کلیه","خون‌رسانی به مغز","خون‌رسانی به خود عضله قلب","خون‌رسانی به پوست"],correct:2},
+{q:"کدام مورد از علائم هشدار سکته قلبی است؟",opts:["بهبود ناگهانی انرژی","کاهش اشتها فقط","درد یا فشار در قفسه سینه","بهبود خواب ناگهانی"],correct:2},
+{q:"سیستم لنفاوی چه نقشی در بدن دارد؟",opts:["هضم چربی‌ها","پمپاژ اصلی خون","تولید انسولین","کمک به سیستم ایمنی و تخلیه مایعات"],correct:3},
+{q:"کدام ماده غذایی بیشترین ارتباط با افزایش فشار خون دارد؟",opts:["پروتئین","ویتامین C","نمک","فیبر"],correct:2},
+{q:"مصرف روزانه نمک توصیه‌شده چقدر است؟",opts:["بیش از ۲۰ گرم","۵۰ گرم","کمتر از ۵ گرم","هیچ محدودیتی ندارد"],correct:2},
+{q:"کدام میوه منبع خوب پتاسیم است؟",opts:["سیب‌زمینی سرخ‌کرده","چیپس","نوشابه","موز"],correct:3},
+{q:"رژیم غذایی معروف برای کنترل فشار خون چه نام دارد؟",opts:["کتوژنیک","DASH","فست‌فود","پرچرب"],correct:1},
+{q:"کدام نوع غذا معمولاً سدیم بالایی دارد؟",opts:["غذاهای فرآوری‌شده و کنسروی","سبزی تازه","میوه تازه","آب ساده"],correct:0},
+{q:"غلات کامل نسبت به غلات تصفیه‌شده چه مزیتی دارند؟",opts:["قند بیشتر","فیبر بیشتر و تأثیر بهتر بر قلب","چربی بیشتر","سدیم بیشتر"],correct:1},
+{q:"کدام یک از این‌ها منبع خوب فیبر است؟",opts:["فست‌فود","نوشابه","شکر سفید","سبزیجات و حبوبات"],correct:3},
+{q:"لبنیات کم‌چرب در مقایسه با پرچرب چه ویژگی دارند؟",opts:["کالری بیشتر","سدیم بیشتر","چربی اشباع کمتر","قند بیشتر"],correct:2},
+{q:"مصرف زیاد شکر چه ارتباطی با فشار خون دارد؟",opts:["فشار خون را همیشه پایین می‌آورد","هیچ ارتباطی ندارد","می‌تواند خطر افزایش وزن و فشار خون را بالا ببرد","فقط روی دندان اثر دارد"],correct:2},
+{q:"کدام ماده غذایی به‌طور طبیعی سدیم پایینی دارد؟",opts:["غذای کنسروی","سس سویا","چیپس نمکی","سبزیجات تازه"],correct:3},
+{q:"غذاهای رستورانی و فست‌فود معمولاً چه ویژگی دارند؟",opts:["پتاسیم بالا","سدیم و چربی بالا","کالری پایین","فیبر بالا"],correct:1},
+{q:"ماهی‌های چرب مثل سالمون منبع خوب چه ماده‌ای هستند؟",opts:["نمک","اسیدهای چرب امگا-۳","کافئین","قند"],correct:1},
+{q:"آب کافی روزانه چه کمکی به بدن می‌کند؟",opts:["کاهش انرژی","حفظ عملکرد طبیعی سیستم گردش خون","بی‌تأثیر بودن کامل","افزایش مستقیم فشار خون"],correct:1},
+{q:"کدام میان‌وعده برای فشار خون مناسب‌تر است؟",opts:["نوشابه گازدار","چیپس نمکی","شکلات شیرین صنعتی","مغزها و آجیل بدون نمک"],correct:3},
+{q:"سدیم موجود در نمک از چه ترکیبی تشکیل شده؟",opts:["پتاسیم کلراید","کلسیم کربنات","سدیم کلراید","منیزیم سولفات"],correct:2},
+{q:"کدام روش پخت برای کاهش سدیم غذا بهتر است؟",opts:["استفاده از کنسرو","استفاده از ادویه و گیاهان به‌جای نمک زیاد","سرخ کردن در نمک زیاد","افزودن سس‌های آماده"],correct:1},
+{q:"کدام فعالیت به کاهش فشار خون کمک می‌کند؟",opts:["ورزش هوازی منظم","کم‌خوابی","نشستن طولانی","سیگار کشیدن"],correct:0},
+{q:"حداقل توصیه‌شده ورزش هوازی در هفته چقدر است؟",opts:["۵ دقیقه","حدود ۱۵۰ دقیقه","صفر دقیقه","۲۰ ساعت"],correct:1},
+{q:"کدام نوع ورزش برای فشار خون مفید است؟",opts:["خواب طولانی روزانه","نشستن جلوی تلویزیون","غذا خوردن زیاد","پیاده‌روی سریع"],correct:3},
+{q:"ورزش منظم چه تأثیری بر قلب دارد؟",opts:["ضعیف کردن قلب","بی‌تأثیر بودن کامل","تقویت عضله قلب و بهبود گردش خون","افزایش فشار خون در بلندمدت"],correct:2},
+{q:"کدام مورد نمونه‌ای از ورزش هوازی است؟",opts:["خوابیدن","نشستن پشت میز","دویدن","بلند کردن اجسام سنگین به‌صورت یک‌باره"],correct:2},
+{q:"فعالیت بدنی روزانه مثل قدم زدن چه اثری دارد؟",opts:["فقط برای ورزشکاران مفید است","کمک به کنترل وزن و فشار خون","باعث افزایش فشار خون می‌شود","هیچ اثری ندارد"],correct:1},
+{q:"کدام مورد به‌عنوان تمرین قدرتی شناخته می‌شود؟",opts:["دوچرخه‌سواری","وزنه‌برداری سبک","دویدن آهسته","شنا آرام"],correct:1},
+{q:"نشستن طولانی‌مدت چه خطری دارد؟",opts:["کاهش فشار خون","بی‌خطر بودن کامل","بهبود گردش خون","افزایش خطر بیماری‌های قلبی‌عروقی"],correct:3},
+{q:"کدام گزینه یک هدف واقع‌بینانه روزانه برای قدم‌زدن است؟",opts:["۱۰۰ قدم","صفر قدم","۱۰۰۰۰۰ قدم","حدود ۷۰۰۰ تا ۱۰۰۰۰ قدم"],correct:3},
+{q:"یوگا و تمرینات تنفسی چه کمکی می‌کنند؟",opts:["افزایش فشار خون فوری","جایگزین کامل دارو","بدون هیچ فایده‌ای","کاهش استرس و آرامش سیستم عصبی"],correct:3},
+{q:"شنا به‌عنوان ورزش چه ویژگی دارد؟",opts:["فعالیت هوازی کم‌فشار بر مفاصل","بی‌فایده برای قلب","ورزش قدرتی سنگین","فقط برای کاهش وزن"],correct:0},
+{q:"دوچرخه‌سواری منظم چه فایده‌ای دارد؟",opts:["افزایش فشار خون دائمی","تقویت سیستم قلبی‌عروقی","بی‌تأثیر بودن","تضعیف عضلات پا"],correct:1},
+{q:"بهتر است قبل از شروع برنامه ورزشی جدید با چه کسی مشورت کرد؟",opts:["هر فردی در باشگاه","پزشک","بدون مشورت شروع کرد","همسایه"],correct:1},
+{q:"کشش و گرم کردن بدن قبل از ورزش چه هدفی دارد؟",opts:["کاهش خطر آسیب عضلانی","کاهش کارایی ورزش","افزایش فشار خون","بی‌فایده بودن"],correct:0},
+{q:"خواب کافی شبانه معمولاً چند ساعت توصیه می‌شود؟",opts:["حدود ۷ تا ۸ ساعت","هیچ نیازی به خواب نیست","۲ ساعت","۱۲ تا ۱۴ ساعت"],correct:0},
+{q:"کم‌خوابی مزمن چه ارتباطی با فشار خون دارد؟",opts:["هیچ ارتباطی ندارد","فقط روی حافظه اثر دارد","می‌تواند خطر افزایش فشار خون را بالا ببرد","همیشه فشار خون را پایین می‌آورد"],correct:2},
+{q:"آپنه خواب (وقفه تنفسی در خواب) با کدام مشکل مرتبط است؟",opts:["تقویت شنوایی","کاهش وزن خودکار","فشار خون بالا","بهبود سریع خواب"],correct:2},
+{q:"کدام عادت به بهبود کیفیت خواب کمک می‌کند؟",opts:["استفاده از موبایل تا دیروقت","نور زیاد در اتاق خواب","ساعت خواب منظم و محیط آرام","نوشیدن قهوه قبل خواب"],correct:2},
+{q:"خواب ناکافی چه تأثیری بر استرس روزانه دارد؟",opts:["کاهش کامل استرس","افزایش سطح استرس","بی‌تأثیر بودن","فقط روی اشتها اثر دارد"],correct:1},
+{q:"چرت کوتاه روزانه (کمتر از ۳۰ دقیقه) معمولاً چه اثری دارد؟",opts:["همیشه مضر است","فشار خون را فوراً بالا می‌برد","باعث بی‌خوابی شبانه قطعی می‌شود","می‌تواند انرژی را بازیابی کند"],correct:3},
+{q:"مصرف کافئین نزدیک زمان خواب چه اثری دارد؟",opts:["باعث خواب عمیق‌تر می‌شود","بی‌تأثیر است","می‌تواند خواب را مختل کند","همیشه خواب را بهتر می‌کند"],correct:2},
+{q:"کدام مورد از عادات خوب پیش از خواب است؟",opts:["ورزش سنگین درست قبل خواب","کاهش نور صفحه‌نمایش قبل از خواب","خوردن وعده سنگین قبل خواب","تماشای تلویزیون تا نیمه‌شب"],correct:1},
+{q:"بی‌خوابی مزمن می‌تواند ریسک کدام مشکل را افزایش دهد؟",opts:["کاهش استرس","بیماری‌های قلبی‌عروقی","افزایش قدرت ایمنی بدون قید","بهبود حافظه"],correct:1},
+{q:"خواب باکیفیت چه نقشی در ریکاوری بدن دارد؟",opts:["باعث افزایش وزن فوری می‌شود","فقط روی پوست اثر دارد","بدون هیچ نقشی","کمک به ترمیم و تنظیم هورمون‌ها"],correct:3},
+{q:"استرس مزمن چه ارتباطی با فشار خون دارد؟",opts:["فقط روی خواب اثر دارد","همیشه فشار خون را کاهش می‌دهد","می‌تواند فشار خون را افزایش دهد","هیچ ارتباطی ندارد"],correct:2},
+{q:"کدام روش به مدیریت استرس کمک می‌کند؟",opts:["تنفس عمیق و مدیتیشن","انزوای اجتماعی کامل","کار بیش از حد بدون استراحت","مصرف زیاد کافئین"],correct:0},
+{q:"فعالیت‌های اجتماعی و ارتباط با دیگران چه تأثیری دارند؟",opts:["کاهش احساس استرس","فقط اتلاف وقت است","بی‌تأثیر بودن","افزایش قطعی فشار خون"],correct:0},
+{q:"کدام مورد نمونه‌ای از تکنیک آرام‌سازی است؟",opts:["نگه داشتن نفس طولانی مکرر","تنفس دیافراگمی آهسته","نفس‌های کوتاه و سریع مداوم","بی‌توجهی به تنفس"],correct:1},
+{q:"استرس حاد کوتاه‌مدت چه اثری دارد؟",opts:["بدون هیچ تأثیری","بهبود بلندمدت سلامت قلب","کاهش دائمی فشار خون","افزایش موقت فشار خون"],correct:3},
+{q:"زمان گذاشتن برای سرگرمی و استراحت چه فایده‌ای دارد؟",opts:["افزایش استرس","فقط اتلاف وقت","بی‌فایده بودن","کاهش سطح استرس روزانه"],correct:3},
+{q:"کدام مورد از نشانه‌های استرس مزمن است؟",opts:["کاهش ضربان قلب در حالت استراحت","افزایش انرژی همیشگی","تنش عضلانی و بی‌خوابی مداوم","بهبود تمرکز دائمی"],correct:2},
+{q:"مدیتیشن منظم چه تأثیری بر سیستم عصبی دارد؟",opts:["بی‌تأثیر بودن کامل","تحریک دائمی استرس","فقط روی خواب اثر دارد","کمک به آرامش سیستم عصبی"],correct:3},
+{q:"کدام مورد به کاهش استرس شغلی کمک می‌کند؟",opts:["افزایش ساعات کاری بدون استراحت","کار مداوم بدون وقفه","استراحت‌های کوتاه منظم در طول روز","نادیده گرفتن خستگی"],correct:2},
+{q:"حمایت اجتماعی خانواده و دوستان چه نقشی دارد؟",opts:["افزایش فشار خون قطعی","کاهش اثرات منفی استرس","فقط جنبه روانی بدون اثر جسمی","بی‌تأثیر بودن"],correct:1},
+{q:"سیگار کشیدن چه تأثیری بر فشار خون دارد؟",opts:["کاهش دائمی فشار خون","افزایش موقت و آسیب بلندمدت به عروق","فقط روی ریه اثر دارد","بدون هیچ تأثیری"],correct:1},
+{q:"نیکوتین چه اثری روی عروق خونی دارد؟",opts:["بدون هیچ اثری","تنگ کردن موقت عروق","فقط روی مغز اثر دارد","گشاد کردن دائمی عروق"],correct:1},
+{q:"ترک سیگار چه فایده‌ای برای قلب دارد؟",opts:["بدون هیچ فایده‌ای","فقط روی بویایی اثر دارد","افزایش فوری خطر بیماری","کاهش تدریجی خطر بیماری قلبی"],correct:3},
+{q:"مصرف زیاد الکل چه ارتباطی با فشار خون دارد؟",opts:["فقط روی کبد اثر دارد","می‌تواند فشار خون را افزایش دهد","همیشه فشار خون را کاهش می‌دهد","هیچ ارتباطی ندارد"],correct:1},
+{q:"کافئین زیاد در برخی افراد چه اثری دارد؟",opts:["فقط روی خواب اثر دارد","کاهش دائمی فشار خون","افزایش موقت فشار خون","بدون هیچ اثری"],correct:2},
+{q:"سیگار کشیدن غیرمستقیم (دود دست دوم) چه خطری دارد؟",opts:["فقط روی لباس اثر دارد","آسیب به سلامت قلبی‌عروقی اطرافیان","بدون هیچ خطری","بهبود کیفیت هوا"],correct:1},
+{q:"کدام نوشیدنی معمولاً کافئین بالایی دارد؟",opts:["آب‌میوه طبیعی","آب ساده","شیر کم‌چرب","قهوه غلیظ"],correct:3},
+{q:"مصرف متعادل الکل طبق برخی توصیه‌ها به چه معناست؟",opts:["نامحدود بودن مصرف","فقط در مهمانی‌ها","مقدار بسیار محدود و کنترل‌شده","هر روز مصرف زیاد"],correct:2},
+{q:"سیگار الکترونیکی از نظر سلامت قلب چگونه است؟",opts:["هیچ ماده مضری ندارد","کاملاً بی‌خطر است","هنوز خطرات احتمالی دارد و بی‌خطر مطلق نیست","باعث بهبود فشار خون می‌شود"],correct:2},
+{q:"کدام مورد به‌عنوان راهکار ترک سیگار شناخته می‌شود؟",opts:["مشاوره و حمایت پزشکی","مصرف همزمان الکل","نادیده گرفتن هوس سیگار بدون کمک","افزایش مصرف روزانه"],correct:0},
+{q:"مصرف زیاد نوشابه‌های انرژی‌زا چه خطری دارد؟",opts:["بهبود کامل خواب","افزایش ضربان قلب و فشار خون موقت","کاهش قطعی استرس","بدون هیچ خطری"],correct:1},
+{q:"اعتیاد به نیکوتین چه ویژگی دارد؟",opts:["بدون هیچ وابستگی","فقط عادت ذهنی ساده","بی‌خطر بودن کامل","ایجاد وابستگی جسمی و روانی"],correct:3},
+{q:"کاهش تدریجی مصرف کافئین چه کمکی می‌کند؟",opts:["بی‌تأثیر بودن","بهبود فوری خواب","افزایش انرژی فوری","کاهش علائم ترک مثل سردرد"],correct:3},
+{q:"مصرف الکل همراه با برخی داروهای فشار خون چه خطری دارد؟",opts:["بدون هیچ تداخلی","همیشه بی‌خطر است","تشدید عوارض جانبی دارو","بهبود اثر دارو"],correct:2},
+{q:"کدام مورد از عوارض بلندمدت سیگار بر سیستم قلبی‌عروقی است؟",opts:["تقویت گردش خون","افزایش خطر تصلب شرایین","بهبود انعطاف‌پذیری عروق","کاهش خطر لخته خون"],correct:1},
+{q:"BMI مخفف چیست؟",opts:["فشار خون پایه","ضربان قلب پایه","شاخص توده بدنی","میزان چربی خون"],correct:2},
+{q:"BMI چگونه محاسبه می‌شود؟",opts:["وزن ضرب در سن","فقط بر اساس قد","فقط بر اساس وزن","وزن (کیلوگرم) تقسیم بر مجذور قد (متر)"],correct:3},
+{q:"اضافه‌وزن و چاقی چه ارتباطی با فشار خون دارند؟",opts:["فقط روی ظاهر اثر دارند","بدون هیچ ارتباطی","افزایش خطر فشار خون بالا","کاهش قطعی خطر"],correct:2},
+{q:"کاهش وزن اندک در افراد دارای اضافه‌وزن چه اثری دارد؟",opts:["همیشه فشار خون را بالا می‌برد","می‌تواند به کاهش فشار خون کمک کند","فقط روی ظاهر مؤثر است","هیچ اثری ندارد"],correct:1},
+{q:"چربی شکمی (دور کمر بالا) با کدام خطر مرتبط است؟",opts:["افزایش خطر بیماری‌های قلبی‌عروقی","بی‌خطر بودن کامل","بهبود فشار خون","کاهش خطر دیابت"],correct:0},
+{q:"کدام روش برای کاهش وزن سالم توصیه می‌شود؟",opts:["رژیم‌های افراطی کوتاه‌مدت","ترکیب تغذیه متعادل و فعالیت بدنی منظم","گرسنگی طولانی","حذف کامل همه گروه‌های غذایی"],correct:1},
+{q:"دور کمر بالا نشانه چه چیزی می‌تواند باشد؟",opts:["عضله‌سازی سالم","رشد استخوانی طبیعی","تجمع چربی احشایی خطرناک","کمبود آب بدن"],correct:2},
+{q:"کدام گزینه در دسته‌بندی BMI قرار دارد؟",opts:["فقط طبیعی و غیرطبیعی","فقط لاغر و چاق","کم‌وزن، طبیعی، اضافه‌وزن، چاقی","هیچ‌کدام"],correct:2},
+{q:"افزایش وزن سریع و ناگهانی چه چیزی می‌تواند نشان دهد؟",opts:["نشانه سلامت کامل","فقط مسئله ظاهری است","نیاز به بررسی سبک زندگی یا مشورت پزشکی","همیشه بی‌خطر است"],correct:2},
+{q:"کدام مورد به کنترل وزن بلندمدت کمک می‌کند؟",opts:["گرسنگی کشیدن مکرر","عادات پایدار تغذیه و ورزش","رژیم‌های موقت شدید","حذف کامل وعده صبحانه همیشه"],correct:1},
+{q:"نسبت دور کمر به دور باسن چه چیزی را نشان می‌دهد؟",opts:["سطح کلسترول دقیق","فشار خون دقیق","الگوی توزیع چربی بدن","میزان قند خون"],correct:2},
+{q:"کدام یک جزو عوامل مؤثر بر افزایش وزن است؟",opts:["مصرف کالری بیشتر از نیاز بدن همراه با کم‌تحرکی","خواب کافی","نوشیدن آب کافی","ورزش منظم"],correct:0},
+{q:"کاهش وزن آهسته و پایدار نسبت به کاهش سریع چه مزیتی دارد؟",opts:["همیشه خطرناک‌تر است","بدون هیچ مزیتی","همیشه سریع‌تر است","ماندگاری بیشتر و سالم‌تر بودن"],correct:3},
+{q:"اضافه‌وزن در دوران کودکی چه ارتباطی با آینده دارد؟",opts:["افزایش احتمال چاقی و مشکلات قلبی در بزرگسالی","بدون هیچ ارتباطی","همیشه در بزرگسالی برطرف می‌شود","فقط مسئله ظاهری است"],correct:0},
+{q:"کدام مورد بخشی از سبک زندگی سالم برای وزن مناسب است؟",opts:["فقط تمرکز بر غذا بدون ورزش","فقط تمرکز بر ورزش بدون توجه به غذا","نادیده گرفتن کامل وزن","تعادل بین کالری دریافتی و مصرفی"],correct:3},
+{q:"کدام مورد جزو عوامل خطر غیرقابل‌تغییر فشار خون بالاست؟",opts:["سن و سابقه خانوادگی","کیفیت خواب","میزان ورزش","مقدار نمک مصرفی"],correct:0},
+{q:"با افزایش سن، خطر فشار خون بالا معمولاً چگونه تغییر می‌کند؟",opts:["بدون تغییر می‌ماند","همیشه کاهش می‌یابد","فقط در کودکی افزایش می‌یابد","افزایش می‌یابد"],correct:3},
+{q:"سابقه خانوادگی فشار خون بالا چه معنایی دارد؟",opts:["افزایش احتمال ابتلا در فرد","تضمین قطعی ابتلا","تضمین عدم ابتلا","بدون هیچ تأثیری"],correct:0},
+{q:"کدام مورد جزو عوامل خطر قابل‌تغییر است؟",opts:["سن","رژیم غذایی و فعالیت بدنی","جنسیت","ژنتیک"],correct:1},
+{q:"دیابت چه ارتباطی با فشار خون بالا دارد؟",opts:["بدون هیچ ارتباطی","افزایش خطر مشترک بیماری‌های قلبی‌عروقی","همیشه فشار خون را کاهش می‌دهد","فقط روی چشم اثر دارد"],correct:1},
+{q:"کلسترول بالا چه ارتباطی با سلامت قلب دارد؟",opts:["فقط روی پوست اثر دارد","بدون هیچ ارتباطی","افزایش خطر گرفتگی عروق","همیشه فشار خون را پایین می‌آورد"],correct:2},
+{q:"کدام گروه سنی معمولاً بیشتر در معرض فشار خون بالا هستند؟",opts:["نوزادان","هیچ گروه سنی خاصی","نوجوانان کاملاً سالم","افراد میانسال و مسن‌تر"],correct:3},
+{q:"چکاپ‌های منظم پزشکی چه اهمیتی دارند؟",opts:["فقط یک بار در عمر کافی است","تشخیص زودهنگام مشکلات فشار خون","بدون هیچ اهمیتی","فقط برای افراد بیمار لازم است"],correct:1},
+{q:"کدام مورد می‌تواند نشانه هشدار فشار خون بسیار بالا باشد؟",opts:["سردرد شدید و تاری دید ناگهانی","احساس شادی زیاد","بهبود خواب ناگهانی","افزایش انرژی مثبت"],correct:0},
+{q:"استرس شغلی مزمن چه ارتباطی با ریسک فشار خون دارد؟",opts:["فقط روی خواب اثر دارد","همیشه خطر را کاهش می‌دهد","بدون هیچ ارتباطی","می‌تواند خطر را افزایش دهد"],correct:3},
+{q:"غربالگری منظم فشار خون برای بزرگسالان سالم چند وقت یک‌بار توصیه می‌شود؟",opts:["حداقل سالی یک‌بار","هرگز","هر ده سال یک‌بار","فقط یک‌بار در کل عمر"],correct:0},
+{q:"کدام مورد جزو عوارض بلندمدت فشار خون کنترل‌نشده است؟",opts:["آسیب به کلیه و قلب","افزایش قدرت عضلانی","بهبود بینایی","تقویت استخوان"],correct:0},
+{q:"زنان باردار چرا نیاز به پایش فشار خون دارند؟",opts:["فقط برای اطلاعات آماری","چون فشار خون همیشه در بارداری پایین می‌آید","خطر عارضه‌ای به نام پره‌اکلامپسی","بدون هیچ دلیلی"],correct:2},
+{q:"کدام مورد به تشخیص زودهنگام فشار خون بالا کمک می‌کند؟",opts:["نادیده گرفتن علائم","اندازه‌گیری منظم در خانه یا مطب","فقط تکیه بر احساس شخصی","اجتناب از هرگونه چکاپ"],correct:1},
+{q:"داروهای کاهنده فشار خون معمولاً باید چگونه مصرف شوند؟",opts:["بدون هیچ نظارتی","طبق تجویز و نظر پزشک","هر زمان که فرد بخواهد","فقط زمانی که علامت دارد"],correct:1},
+{q:"قطع ناگهانی برخی داروهای فشار خون بدون مشورت پزشک چه خطری دارد؟",opts:["بدون هیچ عارضه‌ای","افزایش ناگهانی فشار خون","همیشه بی‌خطر است","بهبود فوری وضعیت"],correct:1},
+{q:"دیورتیک‌ها در درمان فشار خون چه نقشی دارند؟",opts:["کمک به دفع مایع اضافی بدن","افزایش نمک بدن","افزایش وزن","تضعیف کلیه بدون هیچ فایده"],correct:0},
+{q:"مهم‌ترین دلیل مصرف منظم داروی تجویزشده برای فشار خون چیست؟",opts:["حفظ کنترل پایدار فشار خون","بدون تأثیر واقعی","فقط عادت روزانه بی‌دلیل","فقط توصیه غیرضروری"],correct:0},
+{q:"اگر دارویی عوارض جانبی ناخوشایند دارد، بهترین کار چیست؟",opts:["مشورت با پزشک بدون قطع خودسرانه","نادیده گرفتن کامل موضوع","دو برابر کردن دوز خودسرانه","قطع فوری بدون اطلاع پزشک"],correct:0},
+{q:"تداخل دارویی به چه معناست؟",opts:["نام دیگر فشارسنج","اثر متقابل دو یا چند دارو بر یکدیگر","نوعی بیماری قلبی","نام دیگر دوز دارو"],correct:1},
+{q:"چرا پزشکان گاهی چند داروی مختلف برای فشار خون تجویز می‌کنند؟",opts:["برای کنترل بهتر از طریق مکانیسم‌های متفاوت","چون همیشه یک دارو کافیه ولی این گزینه غلطه","بدون هیچ دلیل پزشکی","برای افزایش هزینه بدون دلیل"],correct:0},
+{q:"مکمل‌های گیاهی برای فشار خون باید چگونه مصرف شوند؟",opts:["به‌جای کامل داروی تجویزشده","بدون هیچ اطلاعی به پزشک","در هر مقداری دلخواه","با اطلاع و تأیید پزشک"],correct:3},
+{q:"یادداشت کردن فشار خون روزانه چه کمکی به پزشک می‌کند؟",opts:["جایگزین کامل ویزیت پزشک","فقط اتلاف وقت","کمک به ارزیابی روند درمان","بدون هیچ کاربردی"],correct:2},
+{q:"کدام اندام اصلی فشار خون را تنظیم می‌کند؟",opts:["معده","ریه","کبد","قلب و عروق خونی"],correct:3},
+{q:"نبض چه چیزی را نشان می‌دهد؟",opts:["تعداد ضربان قلب در دقیقه","فشار خون سیستولیک","سطح قند خون","دمای بدن"],correct:0},
+{q:"کدام ماده معدنی به کاهش فشار خون کمک می‌کند؟",opts:["آلومینیوم","پتاسیم","جیوه","سرب"],correct:1},
+{q:"مصرف زیاد کدام نوشیدنی می‌تواند فشار خون را موقتاً بالا ببرد؟",opts:["آب","آبمیوه طبیعی کم‌قند","چای گیاهی بدون کافئین","قهوه زیاد"],correct:3},
+{q:"کدام روغن برای سلامت قلب مناسب‌تر است؟",opts:["روغن نارگیل جامد","چربی حیوانی","روغن زیتون","روغن پالم"],correct:2},
+{q:"فعالیت بدنی منظم چه تأثیری روی استرس دارد؟",opts:["فقط روی خواب اثر دارد","بی‌تأثیر بودن","افزایش استرس","کاهش سطح استرس"],correct:3},
+{q:"کدام مورد جزو علائم احتمالی فشار خون بسیار بالا نیست؟",opts:["احساس آرامش کامل بدون علامت","سردرد","تنگی نفس","درد قفسه سینه"],correct:0},
+{q:"کدام آزمایش برای بررسی فعالیت الکتریکی قلب استفاده می‌شود؟",opts:["نوار قلب (ECG/EKG)","آزمایش بینایی","تست شنوایی","آزمایش ادرار"],correct:0},
+{q:"کدام مورد به بهبود سلامت عروق کمک می‌کند؟",opts:["ورزش منظم و تغذیه سالم","سیگار کشیدن","مصرف زیاد چربی اشباع","بی‌تحرکی مداوم"],correct:0},
+{q:"کدام مورد نقش مهمی در موفقیت درمان فشار خون دارد؟",opts:["نادیده گرفتن قرارهای پزشکی","اعتماد فقط به توصیه‌های غیرتخصصی","تغییر خودسرانه داروها","پایبندی به برنامه درمانی و پیگیری منظم"],correct:3},
+{q:"کدام مورد یک عادت پیشگیرانه خوب برای فشار خون است؟",opts:["اجتناب کامل از چکاپ","تکیه فقط بر شانس","پایش منظم و سبک زندگی سالم","نادیده گرفتن علائم"],correct:2},
+{q:"ثبت روزانه عادت‌های سلامت چه فایده‌ای دارد؟",opts:["فقط سرگرمی است","کمک به شناخت الگوهای رفتاری تأثیرگذار","بدون هیچ فایده‌ای","هیچ ارتباطی با سلامت ندارد"],correct:1},
+{q:"کدام مورد جزو نشانه‌های نیاز به مراجعه فوری پزشکی است؟",opts:["خستگی خفیف بعد از ورزش","تشنگی معمولی","درد شدید قفسه سینه همراه با تنگی نفس","گرسنگی معمولی"],correct:2},
+{q:"کدام گزینه به کاهش خطر بلندمدت بیماری‌های قلبی کمک می‌کند؟",opts:["اجتناب کامل از هرگونه فعالیت","نادیده گرفتن کامل سبک زندگی","فقط تکیه بر دارو بدون تغییر سبک زندگی","ترکیب تغذیه سالم، ورزش، خواب کافی و مدیریت استرس"],correct:3},
+{q:"آموزش خانواده درباره سبک زندگی سالم چه اهمیتی دارد؟",opts:["بدون هیچ اهمیتی","هیچ تأثیری بر سلامت خانواده ندارد","کمک به ایجاد عادات پایدار جمعی","فقط مسئولیت فردی است"],correct:2},
+{q:"کدام مورد یک هدف کوچک و قابل‌دستیابی برای شروع سبک زندگی سالم است؟",opts:["مقایسه مداوم با دیگران","تغییر ناگهانی و کامل همه عادات در یک روز","افزایش تدریجی قدم‌های روزانه","تصمیم بدون برنامه‌ریزی"],correct:2},
+{q:"کدام مورد به حفظ انگیزه بلندمدت برای سبک زندگی سالم کمک می‌کند؟",opts:["تعیین اهداف کوچک و قابل‌اندازه‌گیری","انتظار نتیجه فوری و کامل","مقایسه دائمی با دیگران","ناامیدی بعد از یک روز ناموفق"],correct:0},
+{q:"کدام مورد بخشی از یک چکاپ سالانه سلامت قلب می‌تواند باشد؟",opts:["فقط بررسی بینایی","اندازه‌گیری فشار خون و کلسترول","فقط بررسی دندان‌ها","فقط اندازه‌گیری قد"],correct:1},
+{q:"کدام مورد در مدیریت استرس و سلامت قلب مؤثر است؟",opts:["برنامه‌ریزی زمان برای استراحت و تفریح","انزوای کامل اجتماعی","نادیده گرفتن نیازهای شخصی","کار مداوم بدون هیچ استراحتی"],correct:0},
+{q:"آگاهی از عدد فشار خون خود چه اهمیتی دارد؟",opts:["کمک به تصمیم‌گیری بهتر درباره سبک زندگی و درمان","بدون هیچ اهمیتی","فقط کنجکاوی بی‌فایده","جایگزین کامل نظر پزشک"],correct:0}
+];
+
+let quizRound = [], quizIndex = 0, quizScore = 0;
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+function newQuizRound(){
+  quizRound = shuffle(quizBank).slice(0, 12);
+  quizIndex = 0; quizScore = 0;
+  renderQuiz();
+}
+function renderQuiz(){
+  const card = document.getElementById('quizCard');
+  if(quizIndex >= quizRound.length){
+    card.innerHTML = `
+      <div class="quiz-result">
+        <div style="font-size:.85rem;color:var(--text-dim);margin-bottom:6px;">نتیجه‌ی آزمون</div>
+        <div class="big">${quizScore} / ${quizRound.length}</div>
+        <p style="color:var(--text-dim);font-size:.85rem;margin:14px 0 20px;">امتیاز به شهر سلامتت اضافه شد 🌿 — بانک این آزمون ۱۶۰ سوال داره، پس دفعه بعد سوالای متفاوتی می‌بینی</p>
+        <button class="primary" id="restartQuiz">دور جدید (سوالات تازه)</button>
+      </div>`;
+    document.getElementById('restartQuiz').addEventListener('click', newQuizRound);
+    return;
+  }
+  const q = quizRound[quizIndex];
+  card.innerHTML = `
+    <div class="quiz-progress">سوال ${quizIndex+1} از ${quizRound.length}</div>
+    <div class="quiz-q">${q.q}</div>
+    ${q.opts.map((o,i)=>`<button class="opt" data-i="${i}">${o}</button>`).join('')}
+  `;
+  card.querySelectorAll('.opt').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const i = Number(btn.dataset.i);
+      card.querySelectorAll('.opt').forEach(b=>b.disabled = true);
+      if(i === q.correct){ btn.classList.add('correct'); quizScore++; }
+      else{ btn.classList.add('wrong'); card.querySelector(`.opt[data-i="${q.correct}"]`).classList.add('correct'); }
+      setTimeout(()=>{
+        quizIndex++;
+        renderQuiz();
+        if(quizIndex >= quizRound.length){ addScore(quizScore); }
+      }, 900);
+    });
+  });
+}
+newQuizRound();
+
+/* ================= brain game: Simon-style ================= */
+const simonColors = document.querySelectorAll('.simon-btn');
+let simonSeq = [], simonUserStep = 0, simonPlaying = false, simonLevel = 0;
+function simonFlash(i, dur=420){
+  return new Promise(res=>{
+    const btn = simonColors[i];
+    btn.classList.add('lit');
+    setTimeout(()=>{ btn.classList.remove('lit'); res(); }, dur);
+  });
+}
+async function simonPlaySequence(){
+  simonPlaying = false;
+  document.getElementById('simonStatus').textContent = 'تماشا کن...';
+  await new Promise(r=>setTimeout(r,500));
+  for(const i of simonSeq){ await simonFlash(i); await new Promise(r=>setTimeout(r,180)); }
+  simonUserStep = 0; simonPlaying = true;
+  document.getElementById('simonStatus').textContent = 'حالا نوبت توئه — دنباله رو تکرار کن';
+}
+function simonNext(){
+  simonSeq.push(Math.floor(Math.random()*4));
+  simonLevel = simonSeq.length;
+  document.getElementById('simonLevel').textContent = 'سطح ' + simonLevel;
+  simonPlaySequence();
+}
+document.getElementById('simonStart').addEventListener('click', ()=>{ simonSeq=[]; simonLevel=0; simonNext(); });
+simonColors.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(!simonPlaying) return;
+    const i = Number(btn.dataset.i);
+    simonFlash(i, 200);
+    if(i === simonSeq[simonUserStep]){
+      simonUserStep++;
+      if(simonUserStep === simonSeq.length){
+        simonPlaying = false;
+        document.getElementById('simonStatus').textContent = 'آفرین! سطح بعدی...';
+        if(simonLevel > state.simonBest){
+          const gained = simonLevel - state.simonBest;
+          state.simonBest = simonLevel; saveState(state);
+          addScore(gained);
+        }
+        setTimeout(simonNext, 900);
+      }
+    } else {
+      simonPlaying = false;
+      document.getElementById('simonStatus').textContent = 'اشتباه بود! سطح نهایی: ' + simonLevel + ' — دوباره امتحان کن';
+    }
+  });
+});
+
+/* ================= AI coach (Gemini API) ================= */
+const keySetup = document.getElementById('keySetup');
+const coachBody = document.getElementById('coachBody');
+const coachInputRow = document.getElementById('coachInputRow');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+const GEMINI_API_KEY_STORAGE = 'healthy-heart-gemini-api-key';
+let geminiHistory = [];
+
+function addMessage(role, text){
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
+  div.innerHTML = '<span class="bubble"></span>';
+  div.querySelector('.bubble').textContent = text;
+  coachBody.appendChild(div);
+  coachBody.scrollTop = coachBody.scrollHeight;
+}
+function activateChat(){
+  keySetup.style.display = 'none';
+  coachBody.style.display = 'block';
+  coachInputRow.style.display = 'flex';
+  addMessage('ai', 'سلام! من مربی سلامت تو هستم. درباره تغذیه، ورزش، خواب یا مدیریت استرس برای کنترل فشار خون بپرس. (جایگزین پزشک نیستم 🙂)');
+}
+document.getElementById('saveKeyBtn').addEventListener('click', ()=>{
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if(!key){ showToast('لطفاً کلید رو وارد کن'); return; }
+  if(!key.startsWith('AIza')){ showToast('کلید باید با AIza شروع بشه (فرمت کلید Gemini)'); return; }
+  localStorage.setItem(GEMINI_API_KEY_STORAGE, key);
+  activateChat();
+});
+const savedGeminiKey = localStorage.getItem(GEMINI_API_KEY_STORAGE);
+if(savedGeminiKey){ activateChat(); }
+
+async function sendMessage(){
+  const text = chatInput.value.trim();
+  if(!text) return;
+  const key = localStorage.getItem(GEMINI_API_KEY_STORAGE);
+  if(!key){ showToast('اول کلید API رو وارد کن'); return; }
+  addMessage('user', text);
+  chatInput.value = '';
+  sendBtn.disabled = true;
+
+  // Build Gemini contents array from history
+  geminiHistory.push({ role: 'user', parts: [{ text: text }] });
+
+  try{
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=' + key, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: 'تو یک مربی سلامت مهربان درباره پیشگیری و مدیریت فشار خون بالا هستی. به فارسی، ساده و کوتاه (حداکثر ۴-۵ جمله) پاسخ بده. هرگز دوز دارو پیشنهاد نده یا تشخیص پزشکی نده و برای علائم جدی، کاربر رو به پزشک ارجاع بده.' }]
+        },
+        contents: geminiHistory,
+        generationConfig: {
+          maxOutputTokens: 800,
+          temperature: 0.7
+        }
+      })
+    });
+    let data;
+    try{ data = await res.json(); }
+    catch(parseErr){ addMessage('ai', 'خطا: پاسخ سرور قابل‌خواندن نبود (کد وضعیت ' + res.status + '). لطفاً کلید API رو چک کن.'); return; }
+
+    if(!res.ok || data.error){
+      const msg = data.error ? (data.error.message || JSON.stringify(data.error)) : ('کد وضعیت ' + res.status);
+      let helpText = '\n\nراه‌حل‌های احتمالی:\n';
+      if(msg.includes('API key')){
+        helpText += '1. کلید API نامعتبره. برو به aistudio.google.com/app/apikey و یه کلید تازه بساز.\n';
+      } else if(msg.includes('quota') || msg.includes('rate limit') || msg.includes('429')){
+        helpText += '1. محدودیت رایگان رو رد کردی. صبر کن چند دقیقه و دوباره امتحان کن.\n';
+      } else if(msg.includes('model')){
+        helpText += '1. مدل gemini-3.5-flash هنوز برای حسابت فعال نیست. از aistudio.google.com چک کن.\n';
+      } else {
+        helpText += '1. کلید API رو چک کن.\n2. اگه این صفحه رو با دابل‌کلیک (file://) باز کردی، به‌جاش از یک سرور واقعی (مثل GitHub Pages) بازش کن.\n';
+      }
+      addMessage('ai', 'خطا از سمت سرور: ' + msg + helpText);
+    } else {
+      const reply = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts
+        ? data.candidates[0].content.parts.map(p => p.text || '').join('\n')
+        : 'پاسخی دریافت نشد. لطفاً دوباره امتحان کن.';
+      geminiHistory.push({ role: 'model', parts: [{ text: reply }] });
+      addMessage('ai', reply);
+    }
+  }catch(e){
+    addMessage('ai', 'ارتباط با سرور برقرار نشد. مهم‌ترین دلیل رایج: این صفحه با دابل‌کلیک (file://) باز شده، نه از طریق GitHub Pages. لطفاً اول اون رو از https://username.github.io/... باز کن و دوباره امتحان کن.\n\nاگه از سرور واقعی استفاده می‌کنی ولی هنوز خطا داری، ممکنه AdBlocker یا فیلترینگ ارتباط رو قطع کرده باشه.');
+  }
+  finally{ sendBtn.disabled = false; }
+}
+sendBtn.addEventListener('click', sendMessage);
+chatInput.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
+
+/* ================= init ================= */
+renderStatus();
+</script>
+</body>
+</html>
